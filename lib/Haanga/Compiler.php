@@ -39,24 +39,24 @@ class Haanga_Compiler
 {
 
     // properties {{{
-    protected static $block_var=NULL;
+    protected $block_var=NULL;
     protected $generator;
-    protected $forloop = array();
-    protected $forid = 0;
-    protected $sub_template = FALSE;
+    protected $forloop;
+    protected $forid;
+    protected $sub_template;
     protected $name;
-    protected $check_function = FALSE;
-    protected $blocks=array();
-    protected $line=0;
+    protected $check_function;
+    protected $blocks;
+    protected $line;
     protected $file;
     /**
      *  number of blocks :-)
      */
-    protected $in_block=0;
+    protected $in_block;
     /**
      *  output buffers :-)
      */
-    protected $ob_start=0;
+    protected $ob_start;
     protected $append;
     protected $prepend_op;
     /**
@@ -73,31 +73,28 @@ class Haanga_Compiler
      *  that escape won't be called if autoescape is 
      *  activated (which is activated by default)
      */
-    public $var_is_safe=FALSE;
+    public $var_is_safe;
     public $safes;
 
     /* compiler options */
-    static protected $autoescape = TRUE;
-    static protected $if_empty   = TRUE;
-    static protected $dot_as_object = TRUE;
-    static protected $strip_whitespace = FALSE;
-    static protected $is_exec_enabled  = FALSE;
-    static protected $global_context = array();
-    static protected $echo_concat = '.';
-    static protected $enable_load = TRUE;
-
+    protected $autoescape = TRUE;
+    protected $if_empty   = TRUE;
+    protected $dot_as_object = TRUE;
+    protected $strip_whitespace = FALSE;
+    protected $is_exec_enabled  = FALSE;
+    protected $global_context = array();
+    protected $echo_concat = '.';
+    protected $enable_load = TRUE;
+    
     /**
      *  Debug file
      */
     protected $debug;
     // }}} 
 
-    function __construct()
+    public function __construct()
     {
-        $this->generator = new Haanga_Generator_PHP;
-        if (self::$block_var===NULL) {
-            self::$block_var = '{{block.'.md5('super').'}}';
-        }
+		$this->reset();
     }
 
     public function getScopeVariable($part = NULL, $string = FALSE) 
@@ -119,34 +116,34 @@ class Haanga_Compiler
     }
 
     // getOption($option) {{{
-    public static function getOption($option)
+    public function getOption($option)
     {
         $value = NULL;
         switch (strtolower($option)) {
         case 'enable_load':
-            $value = self::$enable_load;
+            $value =$this->enable_load;
             break;
         case 'if_empty':
-            $value = self::$if_empty;
+            $value =$this->if_empty;
             break;
         case 'autoescape':
-            $value = self::$autoescape;
+            $value =$this->autoescape;
             break;
         case 'dot_as_object':
-            $value = self::$dot_as_object;
+            $value =$this->dot_as_object;
             break;
         case 'echo_concat':
-            $value = self::$echo_concat;
+            $value =$this->echo_concat;
             break;
         case 'strip_whitespace':
-            $value = self::$strip_whitespace;
+            $value =$this->strip_whitespace;
             break;
         case 'is_exec_enabled':
         case 'allow_exec':
-            $value = self::$is_exec_enabled;
+            $value =$this->is_exec_enabled;
             break;
         case 'global':
-            $value = self::$global_context;
+            $value =$this->global_context;
             break;
         }
         return $value;
@@ -159,38 +156,38 @@ class Haanga_Compiler
      *
      *  @return void
      */
-    public static function setOption($option, $value)
+    public function setOption($option, $value)
     {
         switch (strtolower($option)) {
         case 'if_empty':
-            self::$if_empty = (bool)$value;
+           $this->if_empty = (bool)$value;
             break;
         case 'enable_load':
-            self::$enable_load = (bool)$value;
+           $this->enable_load = (bool)$value;
         case 'echo_concat':
             if ($value == '.' || $value == ',') {
-                self::$echo_concat = $value;
+               $this->echo_concat = $value;
             }
             break;
 
         case 'autoescape':
-            self::$autoescape = (bool)$value;
+           $this->autoescape = (bool)$value;
             break;
         case 'dot_as_object':
-            self::$dot_as_object = (bool)$value;
+           $this->dot_as_object = (bool)$value;
             break;
         case 'strip_whitespace':
-            self::$strip_whitespace = (bool)$value;
+           $this->strip_whitespace = (bool)$value;
             break;
         case 'is_exec_enabled':
         case 'allow_exec':
-            self::$is_exec_enabled = (bool)$value;
+           $this->is_exec_enabled = (bool)$value;
             break;
         case 'global':
             if (!is_array($value)) {
                 $value = array($value);
             }
-            self::$global_context = $value;
+           $this->global_context = $value;
             break;
         }
     }
@@ -206,15 +203,40 @@ class Haanga_Compiler
     // reset() {{{
     function reset()
     {
-        foreach (array_keys(get_object_vars($this)) as $key) {
-            if (isset($avoid_cleaning[$key])) {
-                continue;
-            }
-            $this->$key = NULL;
-        }
-        $this->generator = new Haanga_Generator_PHP;
+	$this->generator = null;
+	$this->forloop = array();
+	$this->forid = 0;
+	$this->sub_template = FALSE;
+	$this->name = null;
+	$this->check_function = false;
+	$this->line=0;
+	$this->file=null;
+	$this->in_block=0;
+	$this->ob_start=0;
+	$this->append = null;
+	$this->prepend_op=null;
+	$this->context=null;
+	$this->var_alias=null;
+	$this->var_is_safe=FALSE;
+	$this->safes=null;
+	
         $this->blocks = array();
         $this->cycle  = array();
+	
+	 $this->autoescape = TRUE;
+	 $this->if_empty   = TRUE;
+	 $this->dot_as_object = TRUE;
+	 $this->strip_whitespace = FALSE;
+	 $this->is_exec_enabled  = FALSE;
+	 $this->global_context = array();
+	 $this->echo_concat = '.';
+	 $this->enable_load = TRUE;
+	 $this->debug = false;
+	 
+        $this->generator = new Haanga_Generator_PHP($this);
+        if ($this->block_var===NULL) {
+           $this->block_var = '{{block.'.md5('super').'}}';
+        }	 
     }
     // }}}
 
@@ -246,9 +268,9 @@ class Haanga_Compiler
     {
         $this->name = $name;
 
-        if (count(self::$global_context) > 0) {
+        if (count($this->global_context) > 0) {
             /* add global variables (if any) to the current context */
-            foreach (self::$global_context as $var) {
+            foreach ($this->global_context as $var) {
                 $this->set_context($var, $GLOBALS[$var]);
             }
         }
@@ -282,8 +304,8 @@ class Haanga_Compiler
 
             $body->declare_function($func_name);
         }
-        if (count(self::$global_context) > 0) {
-            $body->do_global(self::$global_context);
+        if (count($this->global_context) > 0) {
+            $body->do_global($this->global_context);
         }
 
 
@@ -547,7 +569,7 @@ class Haanga_Compiler
     // {% if <expr> %} HTML {% else %} TWO {% endif $} {{{
     protected function generate_op_if($details, &$body)
     {
-        if (self::$if_empty && $this->is_var_filter($details['expr']) && count($details['expr']['var_filter']) == 1) {
+        if ($this->if_empty && $this->is_var_filter($details['expr']) && count($details['expr']['var_filter']) == 1) {
             /* if we are doing if <Variable> it should check 
                if it exists without throw any warning */
             $expr = $details['expr'];
@@ -720,7 +742,7 @@ class Haanga_Compiler
         $this->check_expr($expr);
 
 
-        if (!$this->is_safe($expr) && self::$autoescape) {
+        if (!$this->is_safe($expr) && $this->autoescape) {
             $args    = array($expr);
             $expr = $this->do_filtering('escape', $args);
         }
@@ -777,9 +799,9 @@ class Haanga_Compiler
         /**
          *  isset previous block (parent block)?
          *  TRUE
-         *      has reference to self::$block_var ?
+         *      has reference to $this->block_var ?
          *      TRUE    
-         *          replace self::$block_var for current block value (buffer)
+         *          replace $this->block_var for current block value (buffer)
          *      FALSE
          *          print parent block
          *  FALSE
@@ -789,9 +811,9 @@ class Haanga_Compiler
         $declare = hexpr_cond(
             hexec('isset', $block_name),
             hexpr_cond(
-                hexpr(hexec('strpos', $block_name, self::$block_var), '===', FALSE),
+                hexpr(hexec('strpos', $block_name, $this->block_var), '===', FALSE),
                 $block_name,
-                hexec('str_replace', self::$block_var, $buffer, $block_name)
+                hexec('str_replace',$this->block_var, $buffer, $block_name)
             ), $buffer);
         /* }}} */
 
@@ -939,7 +961,7 @@ class Haanga_Compiler
             return $default ? is_object($variable) : is_object($variable) && !$variable InstanceOf Iterator && !$variable Instanceof ArrayAccess;
         }
 
-        return $default===NULL ? self::$dot_as_object : $default;
+        return $default===NULL ? $this->dot_as_object : $default;
     }
     // }}} 
 
@@ -1007,7 +1029,7 @@ class Haanga_Compiler
                 }
                 /* no need to escape it */
                 $this->var_is_safe = TRUE;
-                return Haanga_AST::str(self::$block_var);
+                return Haanga_AST::str($this->block_var);
                 break;
             default:
                 /* choose array or objects */
@@ -1060,7 +1082,7 @@ class Haanga_Compiler
         /* Flag this object as a printing one */
         $code->doesPrint = TRUE;
 
-        if (self::$strip_whitespace && Haanga_AST::is_str($stmt)) {
+        if ($this->strip_whitespace && Haanga_AST::is_str($stmt)) {
             $stmt['string'] = preg_replace('/\s+/', ' ', $stmt['string']); 
         }
 
@@ -1282,20 +1304,20 @@ class Haanga_Compiler
     // autoescape ON|OFF {{{
     function generate_op_autoescape($details, &$body)
     {
-        $old_autoescape   = self::$autoescape;
-        self::$autoescape = strtolower($details['value']) == 'on';
-        $this->generate_op_code($details['body'], $body);
-        self::$autoescape = $old_autoescape;
+       $old_autoescape   = $this->autoescape;
+       $this->autoescape = strtolower($details['value']) == 'on';
+       $this->generate_op_code($details['body'], $body);
+       $this->autoescape = $old_autoescape;
     }
     // }}}
 
     // {% spacefull %} Set to OFF strip_whitespace for a block (the compiler option) {{{
     function generate_op_spacefull($details, &$body)
     {
-        $old_strip_whitespace   = self::$strip_whitespace;
-        self::$strip_whitespace = FALSE;
-        $this->generate_op_code($details['body'], $body);
-        self::$strip_whitespace = $old_strip_whitespace;
+       $old_strip_whitespace   = $this->strip_whitespace;
+       $this->strip_whitespace = FALSE;
+       $this->generate_op_code($details['body'], $body);
+       $this->strip_whitespace = $old_strip_whitespace;
     }
     // }}}
 
