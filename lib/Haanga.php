@@ -52,27 +52,27 @@ if (!defined('HAANGA_VERSION')) {
  */
 class Haanga
 {
-    protected static $cache_dir;
-    protected static $templates_dir=array('.');
-    protected static $debug;
-    protected static $bootstrap = NULL;
-    protected static $check_ttl;
-    protected static $check_get;
-    protected static $check_set;
-    protected static $use_autoload  = TRUE;
-    protected static $hash_filename = TRUE;
-    protected static $compiler = array();
+    protected $cache_dir;
+    protected $templates_dir=array('.');
+    protected $debug;
+    protected $bootstrap = NULL;
+    protected $check_ttl;
+    protected $check_get;
+    protected $check_set;
+    protected $use_autoload  = TRUE;
+    protected $hash_filename = TRUE;
+    protected $compiler_options = array();
 
-    public static $has_compiled;
+    public $has_compiled;
 
-    private function __construct()
+    public function __construct()
     {
         /* The class can't be instanced */
     }
 
-    public static function getTemplateDir()
+    public function getTemplateDir()
     {
-        return self::$templates_dir; 
+        return $this->templates_dir; 
     }
 
     // configure(Array $opts) {{{
@@ -93,46 +93,46 @@ class Haanga
      *
      *  @return void
      */
-    final public static function configure(Array $opts)
+    public function configure(Array $opts)
     {
         foreach ($opts as $option => $value) {
             switch (strtolower($option)) {
             case 'cache_dir':
-        		self::$cache_dir = $value;
+        		$this->cache_dir = $value;
                 break;
             case 'template_dir':
-        		self::$templates_dir = (Array)$value;
+        		$this->templates_dir = (Array)$value;
                 break;
             case 'bootstrap':
                 if (is_callable($value)) {
-                    self::$bootstrap = $value;
+                    $this->bootstrap = $value;
                 }
                 break;
             case 'debug':
-                self::enableDebug((bool)$value);
+                $this->enableDebug((bool)$value);
                 break;
             case 'check_ttl':
-                self::$check_ttl = (int)$value;
+                $this->check_ttl = (int)$value;
                 break;
             case 'check_get':
                 if (is_callable($value)) {
-                    self::$check_get = $value;
+                    $this->check_get = $value;
                 }
                 break;
             case 'check_set':
                 if (is_callable($value)) {
-                    self::$check_set = $value;
+                    $this->check_set = $value;
                 }
                 break;
             case 'autoload':
-                self::$use_autoload = (bool)$value;
+                $this->use_autoload = (bool)$value;
                 break;
             case 'use_hash_filename':
-                self::$hash_filename = (bool)$value;
+                $this->hash_filename = (bool)$value;
                 break;
-            case 'compiler':
+            case 'compiler_options':
                 if (is_array($value)) {
-                    self::$compiler = $value;
+                    $this->compiler_options = $value;
                 }
                 break;
             default:
@@ -151,9 +151,9 @@ class Haanga
      *
      *  @return void
      */
-    public static function checkCacheDir()
+    public function checkCacheDir()
     {
-        $dir = self::$cache_dir;
+        $dir = $this->cache_dir;
         if (!is_dir($dir)) { 
             $old = umask(0);
             if (!mkdir($dir, 0777, TRUE)) {
@@ -168,12 +168,14 @@ class Haanga
     // }}}
 
     // enableDebug($bool) {{{
-    public static function enableDebug($bool)
+    public function enableDebug($bool)
     {
-        self::$debug = $bool;
+        $this->debug = $bool;
     }
     // }}}
 
+    protected $my_compiler = false;
+    protected $my_has_checkdir = false;
     // getCompiler($checkdir=TRUE) {{{
     /**
      *  This function is a singleton for the Haanga_Compiler_Runtime class.
@@ -184,12 +186,10 @@ class Haanga
      *
      *  @return Haanga_Compiler_Runtime
      */
-    protected static function getCompiler($checkdir=TRUE)
+    protected function getCompiler($checkdir=TRUE)
     {
-        static $compiler;
-        static $has_checkdir = FALSE;
 
-        if (!$compiler) {
+        if (!$this->my_compiler) {
 
             /* Load needed files (to avoid autoload as much as possible) */
             $dir = dirname(__FILE__);
@@ -204,32 +204,32 @@ class Haanga
             require_once "{$dir}/Haanga/Extension/Tag.php";
 
             /* load compiler (done just once) */
-            if (self::$use_autoload) {
+            if ($this->use_autoload) {
                 require_once "{$dir}/Haanga/Loader.php";
             }
 
-            $compiler = new Haanga_Compiler_Runtime;
+            $this->my_compiler = new Haanga_Compiler_Runtime;
 
-            if (self::$bootstrap) {
+            if ($this->bootstrap) {
                 /* call bootstrap hook, just the first time */
-                call_user_func(self::$bootstrap);
+                call_user_func($this->bootstrap);
             }
 
-            if (count(self::$compiler) != 0) {
-                foreach (self::$compiler as $opt => $value) {
-                    Haanga_Compiler::setOption($opt, $value);
+            if (count($this->compiler_options) != 0) {
+                foreach ($this->compiler_options as $opt => $value) {
+                    $this->my_compiler->setOption($opt, $value);
                 }
             }
 
         }
 
-        if ($checkdir && !$has_checkdir) {
-            self::checkCacheDir();
-            $has_checkdir = TRUE; 
+        if ($checkdir && !$this->my_has_checkdir) {
+            $this->checkCacheDir();
+            $this->my_has_checkdir = TRUE; 
         }
 
-        $compiler->reset();
-        return $compiler;
+        $this->my_compiler->reset();
+        return $this->my_compiler;
     }
     // }}}
 
@@ -242,9 +242,9 @@ class Haanga
      *
      *  @return callback($vars=array(), $return=TRUE, $block=array())
      */
-    public static function compile($tpl, $context=array())
+    public function compile($tpl, $context=array())
     {
-        $compiler = self::getCompiler(FALSE);
+        $compiler = $this->getCompiler(FALSE);
 
         foreach ($context as $var => $value) {
             $compiler->set_context($var, $value);
@@ -256,26 +256,30 @@ class Haanga
     }
     // }}}
 
-    public static function getTemplatePath($file)
+    public function getTemplatePath($file)
     {
-        foreach (self::$templates_dir as $dir) {
+        foreach ($this->templates_dir as $dir) {
             $tpl = $dir .'/'.$file;
             if (is_file($tpl)) {
-                return $tpl;
+		$rp = realpath($tpl);
+		if(strpos($tpl, $rp) == 0) {
+			//file do not goes outside our template folders
+			return $tpl;
+		}
             }
         }
-        throw new \RuntimeException("Cannot find {$file} file  (looked in " . implode(",", self::$templates_dir) . ")");
+        throw new \RuntimeException("Cannot find {$file} file  (looked in " . implode(",", $this->templates_dir) . ")");
     }
 
     // safe_load(string $file, array $vars, bool $return, array $blocks) {{{
-    public static function Safe_Load($file, $vars = array(), $return=FALSE, $blocks=array())
+    public function Safe_Load($file, $vars = array(), $return=FALSE, $blocks=array())
     {
         try {
 
-            $tpl = self::getTemplatePath($file);
+            $tpl = $this->getTemplatePath($file);
             if (file_exists($tpl)) {
                 /* call load if the tpl file exists */
-                return self::Load($file, $vars, $return, $blocks);
+                return $this->Load($file, $vars, $return, $blocks);
             }
         } Catch (Exception $e) {
         }
@@ -301,34 +305,34 @@ class Haanga
      *
      *  @return string|NULL
      */
-    public static function Load($file, $vars = array(), $return=FALSE, $blocks=array())
+    public function Load($file, $vars = array(), $return=FALSE, $blocks=array())
     {
-        if (empty(self::$cache_dir)) {
+        if (empty($this->cache_dir)) {
             throw new Haanga_Exception("Cache dir or template dir is missing");
         }
 
-        self::$has_compiled = FALSE;
+        $this->has_compiled = FALSE;
 
-        $tpl      = self::getTemplatePath($file);
+        $tpl      = $this->getTemplatePath($file);
         $fnc      = sha1($tpl);
         $callback = "haanga_".$fnc;
 
         if (is_callable($callback)) {
-            return $callback($vars, $return, $blocks);
+            return $callback($this, $vars, $return, $blocks);
         }
 
-        $php = self::$hash_filename ? $fnc : $file;
-        $php = self::$cache_dir.'/'.$php.'.php';
+        $php = $this->hash_filename ? $fnc : $file;
+        $php = $this->cache_dir.'/'.$php.'.php';
 
         $check = TRUE;
 
-        if (self::$check_ttl && self::$check_get && self::$check_set) {
+        if ($this->check_ttl && $this->check_get && $this->check_set) {
             /* */
-            if (call_user_func(self::$check_get, $callback)) {
+            if (call_user_func($this->check_get, $callback)) {
                 /* disable checking for the next $check_ttl seconds */
                 $check = FALSE;
             } else {
-                $result = call_user_func(self::$check_set, $callback, TRUE, self::$check_ttl);
+                $result = call_user_func($this->check_set, $callback, TRUE, $this->check_ttl);
             }
         } 
         
@@ -356,7 +360,7 @@ class Haanga
                     */
                     require $php;
                     if (is_callable($callback)) {
-                        return $callback($vars, $return, $blocks);
+                        return $callback($this, $vars, $return, $blocks);
                     }
                 }
                 /*
@@ -368,9 +372,9 @@ class Haanga
             }
 
             /* recompile */
-            $compiler = self::getCompiler();
+            $compiler = $this->getCompiler();
 
-            if (self::$debug) {
+            if ($this->debug) {
                 $compiler->setDebug($php.".dump");
             }
 
@@ -399,7 +403,7 @@ class Haanga
                 eval($code);
             }
 
-            self::$has_compiled = TRUE;
+            $this->has_compiled = TRUE;
         }
 
         if (!is_callable($callback)) {
@@ -419,11 +423,11 @@ class Haanga
             
                 
                 // compile temporarily
-                $compiler = self::getCompiler();
+                $compiler = $this->getCompiler();
                 $code = $compiler->compile_file($tpl, FALSE, $vars);
                 eval($code);
 
-                return $callback($vars, $return, $blocks);
+                return $callback($this, $vars, $return, $blocks);
             }
         }
 
@@ -432,7 +436,7 @@ class Haanga
             chmod($php, 0777);
         }
 
-        return $callback($vars, $return, $blocks);
+        return $callback($this, $vars, $return, $blocks);
     }
     // }}}
 
