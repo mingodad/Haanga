@@ -5,15 +5,22 @@
  *   
  *   @credit - adapt from ptemplates sample
  */
+ 
+$time = microtime(TRUE);
+$mem = memory_get_usage();
+
 require "../lib/Haanga.php";
 
-Haanga::registerAutoload();
-Haanga::setCacheDir('tmp/');
-Haanga::setTEmplateDir('inheritance/');
+$my_haanga = new Haanga();
+
+//Haanga::registerAutoload();
+//Haanga::setCacheDir('tmp/');
+//Haanga::setTEmplateDir('inheritance/');
+$my_haanga->configure(array('cache_dir' => 'tmp/', 'template_dir' => 'inheritance/'));
 
 $time_start = microtime(true);
 
-Haanga::Load('page.html', array(
+$my_haanga->Load('page.html', array(
     'title' => microtime(TRUE),
     'users' => array(
         array(
@@ -39,4 +46,4 @@ Haanga::Load('page.html', array(
     )
 ));
 
-echo "in ".(microtime(true) - $time_start)." seconds\n<br/>";
+print_r(array('memory' => (memory_get_usage() - $mem) / (1024 * 1024), 'seconds' => microtime(TRUE) - $time));
