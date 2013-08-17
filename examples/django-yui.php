@@ -1,6 +1,9 @@
 <?php
 
 require "../lib/Haanga.php";
+
+$my_haanga = new Haanga();
+
 $config = array(
     'cache_dir' => 'tmp/',
     'template_dir' => 'django-yui-layout-templates/',
@@ -13,7 +16,7 @@ if (is_callable('xcache_isset')) {
     $config['check_set'] = 'xcache_set';
 }
 
-Haanga::Configure($config);
+$my_haanga->Configure($config);
 
 $files = array();
 foreach (glob("django-yui-layout-templates/*.html") as $html) {
@@ -44,7 +47,7 @@ $files = array_keys($files);
 $time  = microtime(TRUE);
 $mem   = memory_get_usage();
 
-Haanga::Load($_GET['layout'], compact('debug', 'files', 'sql_queries'), FALSE, $blocks);
+$my_haanga->Load($_GET['layout'], compact('debug', 'files', 'sql_queries'), FALSE, $blocks);
 var_dump(array(
  'memory (mb)' => (memory_get_usage()-$mem)/(1024*1024), 
  'time' => microtime(TRUE)-$time
