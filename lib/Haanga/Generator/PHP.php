@@ -60,6 +60,12 @@ class Haanga_Generator_PHP
     protected $ident;
     protected $tab = "    ";
     protected $scopeVariableName;
+    protected $compiler;
+    
+    public function __construct($compiler)
+    {
+        $this->compiler = $compiler;
+    }
 
     // getCode (AST $op_code) {{{
     /**
@@ -197,7 +203,7 @@ class Haanga_Generator_PHP
      */
     function php_function($op)
     {
-        $code = "function {$op['name']}(\${$this->scopeVariableName}, \$return=FALSE, \$blocks=array())".$this->ident()."{";
+        $code = "function {$op['name']}(\$instance, \${$this->scopeVariableName}, \$return=FALSE, \$blocks=array())".$this->ident()."{";
         $this->ident++;
         return $code;
     }
@@ -333,7 +339,7 @@ class Haanga_Generator_PHP
     {
         $op['array'] = $this->php_get_varname($op['array']);
         $op['value'] = $this->php_get_varname($op['value']);
-        $code = "foreach ({$op['array']} as ";
+        $code = "foreach ((array) {$op['array']} as ";
         if (!isset($op['key'])) {
             $code .= " {$op['value']}";
         } else {
@@ -560,8 +566,8 @@ class Haanga_Generator_PHP
      */
     protected function php_print($op)
     {
-        $output = $this->php_generate_stmt($op, Haanga_Compiler::getOption('echo_concat'));
-        if ($output == "' '" && Haanga_Compiler::getOption('strip_whitespace')) {
+        $output = $this->php_generate_stmt($op, $this->compiler->getOption('echo_concat'));
+        if ($output == "' '" && $this->compiler->getOption('strip_whitespace')) {
             return; /* ignore this */
         }
         return 'echo '.$output.';';
